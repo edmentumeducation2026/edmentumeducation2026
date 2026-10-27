@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus - Feature-Rich Communication Platform</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            800: '#5b21b6',
+                            900: '#4c1d95',
+                        },
+                        discord: {
+                            darkest: '#202225',
+                            dark: '#2f3136',
+                            medium: '#36393f',
+                            light: '#40444b',
+                            lighter: '#dcddde',
+                            accent: '#5865F2',
+                            green: '#3ba55d',
+                            red: '#ed4245'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #2e3338;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #202225;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #18191c;
+        }
+        .animate-pulse-slow {
+            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body class="bg-discord-medium text-discord-lighter h-screen flex overflow-hidden">
+
+    <!-- 1. SERVER SIDEBAR (Leftmost) -->
+    <nav class="w-[72px] bg-discord-darkest flex flex-col items-center py-3 space-y-2 z-20 shrink-0 select-none">
+        <!-- Direct Messages / Home Button -->
+        <div class="relative group flex items-center justify-center w-full">
+            <div id="homeIndicator" class="absolute left-0 w-1 bg-white rounded-r transition-all duration-200 h-10"></div>
+            <button onclick="switchView('home')" class="w-12 h-12 rounded-[24px] hover:rounded-[16px] bg-discord-dark hover:bg-discord-accent text-white flex items-center justify-center transition-all duration-200 group-hover:bg-discord-accent shadow-md">
+                <i class="fa-solid fa-house text-xl"></i>
+            </button>
+            <div class="absolute left-[80px] bg-gray-900 text-white text-sm px-3 py-1 rounded shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                Direct Messages
+            </div>
+        </div>
+
+        <div class="w-8 h-[2px] bg-discord-light rounded"></div>
+
+        <!-- Dynamic Guilds List -->
+        <div id="guildsList" class="flex-1 w-full flex flex-col items-center space-y-2 overflow-y-auto overflow-x-hidden no-scrollbar">
+            <!-- Populated via JavaScript -->
+        </div>
+
+        <!-- Add Server Button -->
+        <div class="relative group flex items-center justify-center w-full">
+            <button onclick="openAddServerModal()" class="w-12 h-12 rounded-[24px] hover:rounded-[16px] bg-discord-dark hover:bg-discord-green text-discord-green hover:text-white flex items-center justify-center transition-all duration-200 shadow-md">
+                <i class="fa-solid fa-plus text-lg"></i>
+            </button>
+            <div class="absolute left-[80px] bg-gray-900 text-white text-sm px-3 py-1 rounded shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                Add a Server
+            </div>
+        </div>
+
+        <!-- User Profile Quick Settings Icon -->
+        <div class="relative group flex items-center justify-center w-full pt-2">
+            <button onclick="openSettingsModal()" class="relative w-12 h-12 rounded-full overflow-hidden border-2 border-transparent hover:border-discord-accent transition-all">
+                <img id="sidebarUserAvatar" src="https://placehold.co/100x100/5865F2/ffffff?text=U" alt="Avatar" class="w-full h-full object-cover">
+                <div class="absolute bottom-0 right-0 w-3 h-3 bg-discord-green border-2 border-discord-darkest rounded-full"></div>
+            </button>
+        </div>
+    </nav>
+
+    <!-- 2. SECONDARY SIDEBAR (Channels / DM list / Friends) -->
+    <div id="secondarySidebar" class="w-60 bg-discord-dark flex flex-col z-10 shrink-0 border-r border-black/20">
+        <!-- Header Banner / Dropdown -->
+        <div id="sidebarHeader" class="h-12 border-b border-discord-darkest px-4 flex items-center justify-between shadow-sm cursor-pointer hover:bg-black/10 transition">
+            <h3 id="sidebarTitle" class="font-bold text-white truncate">Direct Messages</h3>
+            <i id="sidebarHeaderIcon" class="fa-solid fa-chevron-down text-xs"></i>
+        </div>
+
+        <!-- Content Area (DMs or Guild Channels) -->
+        <div id="sidebarContent" class="flex-1 overflow-y-auto px-2 py-3 space-y-1">
+            <!-- Populated dynamically -->
+        </div>
+
+        <!-- User Profile Footer Bar -->
+        <div class="h-14 bg-[#292b2f] px-2 flex items-center justify-between">
+            <div class="flex items-center space-x-2 cursor-pointer hover:bg-white/5 p-1 rounded transition flex-1 min-w-0" onclick="openSettingsModal()">
+                <div class="relative w-9 h-9 rounded-full overflow-hidden shrink-0">
+                    <img id="footerUserAvatar" src="https://placehold.co/100x100/5865F2/ffffff?text=U" class="w-full h-full object-cover">
+                    <div class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-discord-green border border-discord-darkest rounded-full"></div>
+                </div>
+                <div class="truncate text-xs">
+                    <div id="footerUsername" class="font-bold text-white truncate">User</div>
+                    <div class="text-gray-400 text-[10px] truncate">Online</div>
+                </div>
+            </div>
+            <div class="flex items-center space-x-1 text-gray-400">
+                <button onclick="toggleMute()" class="p-1.5 hover:bg-white/10 rounded hover:text-white transition" title="Mute">
+                    <i id="muteIcon" class="fa-solid fa-microphone text-sm"></i>
+                </button>
+                <button onclick="toggleDeafen()" class="p-1.5 hover:bg-white/10 rounded hover:text-white transition" title="Deafen">
+                    <i id="deafenIcon" class="fa-solid fa-headphones text-sm"></i>
+                </button>
+                <button onclick="openSettingsModal()" class="p-1.5 hover:bg-white/10 rounded hover:text-white transition" title="User Settings">
+                    <i class="fa-solid fa-gear text-sm"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. MAIN CONTENT PANE (Chat / Voice / Video / Friends) -->
+    <main class="flex-1 flex flex-col bg-discord-medium relative overflow-hidden">
+        
+        <!-- Top Navigation Header -->
+        <header class="h-12 border-b border-discord-darkest px-4 flex items-center justify-between shadow-sm z-10 shrink-0 bg-discord-medium">
+            <div class="flex items-center space-x-2 truncate">
+                <i id="mainHeaderIcon" class="fa-solid fa-hashtag text-gray-400 text-lg"></i>
+                <h2 id="mainHeaderTitle" class="font-bold text-white text-base truncate">general</h2>
+                <span id="mainHeaderTopic" class="text-xs text-gray-400 border-l border-gray-600 pl-2 ml-2 hidden md:inline truncate">Welcome to the general chat channel!</span>
+            </div>
+            <!-- Header Toolbar -->
+            <div class="flex items-center space-x-4 text-gray-300">
+                <button onclick="startVoiceCall()" class="hover:text-white transition" title="Start Voice Channel">
+                    <i class="fa-solid fa-phone text-lg"></i>
+                </button>
+                <button onclick="startVideoCall()" class="hover:text-white transition" title="Start Video Call">
+                    <i class="fa-solid fa-video text-lg"></i>
+                </button>
+                <button onclick="openMemberList()" class="hover:text-white transition lg:hidden" title="Member List">
+                    <i class="fa-solid fa-users text-lg"></i>
+                </button>
+                <div class="relative">
+                    <input type="text" placeholder="Search" class="bg-discord-darkest text-xs px-2 py-1 rounded text-white focus:outline-none focus:w-48 w-36 transition-all duration-200">
+                    <i class="fa-solid fa-magnifying-glass absolute right-2 top-1.5 text-xs text-gray-400"></i>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Dynamic Screen View (Chat vs Voice vs Video vs Friends) -->
+        <div id="mainViewContainer" class="flex-1 flex overflow-hidden relative">
+            
+            <!-- CHAT VIEW -->
+            <div id="chatView" class="flex-1 flex flex-col h-full overflow-hidden">
+                <!-- Messages Scroll Area -->
+                <div id="messageContainer" class="flex-1 overflow-y-auto px-4 py-6 space-y-4">
+                    <!-- Populated dynamically -->
+                </div>
+
+                <!-- Anti-Cuss Notification banner -->
+                <div id="profanityWarning" class="hidden mx-4 mb-2 p-2 bg-red-500/20 border border-red-500 text-red-300 rounded text-xs flex items-center justify-between animate-bounce">
+                    <span><i class="fa-solid fa-triangle-exclamation mr-1"></i> Profanity detected! Anti-cuss filter censored your message.</span>
+                    <button onclick="dismissWarning()" class="text-red-300 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+
+                <!-- Chat Input Bar -->
+                <div class="px-4 pb-6">
+                    <div class="bg-discord-dark rounded-lg flex items-center px-4 py-2.5">
+                        <button class="text-gray-400 hover:text-white mr-3 text-lg" title="Upload Attachment">
+                            <i class="fa-solid fa-circle-plus"></i>
+                        </button>
+                        <input id="chatInput" type="text" placeholder="Message #general" onkeydown="handleChatKey(event)" class="bg-transparent flex-1 text-white placeholder-gray-500 focus:outline-none text-sm">
+                        <div class="flex items-center space-x-3 text-gray-400 ml-2">
+                            <button class="hover:text-white text-lg"><i class="fa-solid fa-gift"></i></button>
+                            <button class="hover:text-white text-lg"><i class="fa-solid fa-note-sticky"></i></button>
+                            <button class="hover:text-white text-lg"><i class="fa-solid fa-face-smile"></i></button>
+                            <button onclick="sendMessage()" class="bg-discord-accent hover:bg-discord-accent/80 text-white px-3 py-1.5 rounded text-xs font-bold transition">Send</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VOICE CALL / ROOM VIEW (Hidden by default) -->
+            <div id="voiceView" class="hidden flex-1 flex flex-col bg-[#111214] p-6 relative overflow-hidden">
+                <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 items-center justify-center p-4">
+                    <!-- Participant 1 -->
+                    <div class="bg-discord-dark rounded-2xl flex flex-col items-center justify-center p-8 relative border-2 border-discord-green shadow-xl aspect-video">
+                        <div class="relative w-24 h-24 rounded-full overflow-hidden border-4 border-discord-green mb-4 shadow-lg animate-pulse-slow">
+                            <img id="voiceUserAvatar1" src="https://placehold.co/150x150/5865F2/ffffff?text=User" class="w-full h-full object-cover">
+                        </div>
+                        <h3 id="voiceUserName1" class="text-white font-bold text-lg">You</h3>
+                        <span class="text-discord-green text-xs mt-1"><i class="fa-solid fa-volume-high mr-1"></i> Speaking</span>
+                    </div>
+                    <!-- Participant 2 -->
+                    <div class="bg-discord-dark rounded-2xl flex flex-col items-center justify-center p-8 relative border-2 border-transparent shadow-xl aspect-video">
+                        <div class="relative w-24 h-24 rounded-full overflow-hidden border-4 border-gray-600 mb-4 shadow-lg">
+                            <img src="https://placehold.co/150x150/3ba55d/ffffff?text=Bot" class="w-full h-full object-cover">
+                        </div>
+                        <h3 class="text-white font-bold text-lg">Nexus Assistant</h3>
+                        <span class="text-gray-400 text-xs mt-1"><i class="fa-solid fa-microphone-slash mr-1"></i> Muted</span>
+                    </div>
+                </div>
+                <!-- Voice Call Controls -->
+                <div class="h-20 bg-discord-darkest rounded-2xl flex items-center justify-center space-x-6 px-6 shadow-2xl">
+                    <button onclick="toggleMute()" class="w-12 h-12 rounded-full bg-discord-medium hover:bg-discord-light text-white flex items-center justify-center text-lg transition shadow">
+                        <i id="voiceMuteIcon" class="fa-solid fa-microphone"></i>
+                    </button>
+                    <button onclick="toggleDeafen()" class="w-12 h-12 rounded-full bg-discord-medium hover:bg-discord-light text-white flex items-center justify-center text-lg transition shadow">
+                        <i id="voiceDeafenIcon" class="fa-solid fa-headphones"></i>
+                    </button>
+                    <button onclick="endVoiceCall()" class="w-14 h-14 rounded-full bg-discord-red hover:bg-red-600 text-white flex items-center justify-center text-xl transition shadow-lg">
+                        <i class="fa-solid fa-phone-slash"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- VIDEO CALL VIEW (Hidden by default) -->
+            <div id="videoView" class="hidden flex-1 flex flex-col bg-black p-4 relative overflow-hidden">
+                <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
+                    <!-- Main Video Stream Mock -->
+                    <div class="relative bg-gray-900 rounded-xl overflow-hidden flex items-center justify-center border border-gray-800">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                        <div class="absolute bottom-4 left-4 text-white font-bold flex items-center space-x-2">
+                            <span class="w-3 h-3 bg-red-500 rounded-full animate-ping"></span>
+                            <span id="videoCallerName">Nexus Bot (Live Stream)</span>
+                        </div>
+                        <div class="text-center p-6 text-gray-500">
+                            <i class="fa-solid fa-video text-6xl mb-3 animate-pulse"></i>
+                            <p class="text-sm">Mock Video Stream Active</p>
+                        </div>
+                    </div>
+                    <!-- Self Video Preview -->
+                    <div class="relative bg-gray-900 rounded-xl overflow-hidden flex items-center justify-center border border-gray-800">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                        <div class="absolute bottom-4 left-4 text-white font-bold">You (Camera On)</div>
+                        <div class="relative w-20 h-20 rounded-full overflow-hidden border-2 border-discord-accent shadow-lg">
+                            <img id="videoUserAvatar" src="https://placehold.co/100x100/5865F2/ffffff?text=U" class="w-full h-full object-cover">
+                        </div>
+                    </div>
+                </div>
+                <!-- Video Call Controls Toolbar -->
+                <div class="h-16 mt-4 bg-discord-darkest rounded-xl flex items-center justify-center space-x-4 shadow-xl">
+                    <button onclick="toggleVideoCamera()" class="w-11 h-11 rounded-full bg-discord-medium hover:bg-discord-light text-white flex items-center justify-center transition">
+                        <i id="camIcon" class="fa-solid fa-video"></i>
+                    </button>
+                    <button onclick="toggleMute()" class="w-11 h-11 rounded-full bg-discord-medium hover:bg-discord-light text-white flex items-center justify-center transition">
+                        <i id="videoMuteIcon" class="fa-solid fa-microphone"></i>
+                    </button>
+                    <button onclick="endVideoCall()" class="w-12 h-12 rounded-full bg-discord-red hover:bg-red-600 text-white flex items-center justify-center text-lg transition">
+                        <i class="fa-solid fa-phone-slash"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- FRIENDS HOME DASHBOARD (Default Home View) -->
+            <div id="friendsView" class="flex-1 flex flex-col bg-discord-medium overflow-hidden">
+                <div class="p-6 overflow-y-auto flex-1">
+                    <div class="flex items-center space-x-6 border-b border-discord-dark pb-4 mb-6">
+                        <button class="font-bold text-white border-b-2 border-discord-accent pb-1">Online</button>
+                        <button class="font-bold text-gray-400 hover:text-white pb-1">All</button>
+                        <button class="font-bold text-gray-400 hover:text-white pb-1">Pending</button>
+                        <button class="font-bold text-gray-400 hover:text-white pb-1">Blocked</button>
+                        <button class="bg-discord-accent hover:bg-discord-accent/80 text-white px-3 py-1 rounded text-xs font-bold transition ml-auto">Add Friend</button>
+                    </div>
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Online — 3</h3>
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between p-2 hover:bg-white/5 rounded-lg transition group">
+                            <div class="flex items-center space-x-3">
+                                <div class="relative w-10 h-10 rounded-full overflow-hidden">
+                                    <img src="https://placehold.co/100x100/3ba55d/ffffff?text=AI" class="w-full h-full object-cover">
+                                    <div class="absolute bottom-0 right-0 w-3 h-3 bg-discord-green border-2 border-discord-medium rounded-full"></div>
+                                </div>
+                                <div>
+                                    <h4 class="text-white font-bold text-sm">Nexus Bot</h4>
+                                    <span class="text-xs text-gray-400">Playing Amazon AWS Simulator</span>
+                                </div>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button onclick="openDirectMessage('Nexus Bot', 'https://placehold.co/100x100/3ba55d/ffffff?text=AI')" class="w-9 h-9 rounded-full bg-discord-dark hover:bg-discord-light text-white flex items-center justify-center transition" title="Message"><i class="fa-solid fa-message text-xs"></i></button>
+                                <button onclick="startVoiceCall()" class="w-9 h-9 rounded-full bg-discord-dark hover:bg-discord-light text-white flex items-center justify-center transition" title="Voice Call"><i class="fa-solid fa-phone text-xs"></i></button>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between p-2 hover:bg-white/5 rounded-lg transition group">
+                            <div class="flex items-center space-x-3">
+                                <div class="relative w-10 h-10 rounded-full overflow-hidden">
+                                    <img src="https://placehold.co/100x100/f59e0b/ffffff?text=DV" class="w-full h-full object-cover">
+                                    <div class="absolute bottom-0 right-0 w-3 h-3 bg-discord-green border-2 border-discord-medium rounded-full"></div>
+                                </div>
+                                <div>
+                                    <h4 class="text-white font-bold text-sm">Devon_Code</h4>
+                                    <span class="text-xs text-gray-400">Coding Python AWS Scripts</span>
+                                </div>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button onclick="openDirectMessage('Devon_Code', 'https://placehold.co/100x100/f59e0b/ffffff?text=DV')" class="w-9 h-9 rounded-full bg-discord-dark hover:bg-discord-light text-white flex items-center justify-center transition" title="Message"><i class="fa-solid fa-message text-xs"></i></button>
+                                <button onclick="startVideoCall()" class="w-9 h-9 rounded-full bg-discord-dark hover:bg-discord-light text-white flex items-center justify-center transition" title="Video Call"><i class="fa-solid fa-video text-xs"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- 4. MEMBER LIST SIDEBAR (Right pane for servers) -->
+    <aside id="memberSidebar" class="w-60 bg-discord-dark hidden lg:flex flex-col z-10 shrink-0 border-l border-black/20 p-4 overflow-y-auto">
+        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Online — 3</h4>
+        <div class="space-y-2">
+            <div class="flex items-center space-x-3 p-1.5 hover:bg-white/5 rounded cursor-pointer transition">
+                <div class="relative w-8 h-8 rounded-full overflow-hidden shrink-0">
+                    <img id="memberListSelfAvatar" src="https://placehold.co/100x100/5865F2/ffffff?text=U" class="w-full h-full object-cover">
+                    <div class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-discord-green border border-discord-dark rounded-full"></div>
+                </div>
+                <div class="truncate">
+                    <span id="memberListSelfName" class="text-white font-medium text-sm truncate">User</span>
+                    <p class="text-[10px] text-gray-400 truncate">AWS Cloud Architect</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3 p-1.5 hover:bg-white/5 rounded cursor-pointer transition">
+                <div class="relative w-8 h-8 rounded-full overflow-hidden shrink-0">
+                    <img src="https://placehold.co/100x100/3ba55d/ffffff?text=AI" class="w-full h-full object-cover">
+                    <div class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-discord-green border border-discord-dark rounded-full"></div>
+                </div>
+                <div class="truncate">
+                    <span class="text-white font-medium text-sm truncate">Nexus Bot</span>
+                    <p class="text-[10px] text-gray-400 truncate">System Moderator</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3 p-1.5 hover:bg-white/5 rounded cursor-pointer transition">
+                <div class="relative w-8 h-8 rounded-full overflow-hidden shrink-0">
+                    <img src="https://placehold.co/100x100/f59e0b/ffffff?text=DV" class="w-full h-full object-cover">
+                    <div class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-discord-green border border-discord-dark rounded-full"></div>
+                </div>
+                <div class="truncate">
+                    <span class="text-white font-medium text-sm truncate">Devon_Code</span>
+                    <p class="text-[10px] text-gray-400 truncate">Fullstack Dev</p>
+                </div>
+            </div>
+        </div>
+        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mt-6 mb-2">Offline — 1</h4>
+        <div class="opacity-50">
+            <div class="flex items-center space-x-3 p-1.5 rounded">
+                <div class="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-white text-xs">EX</div>
+                <span class="text-white text-sm">ExampleUser</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 5. SETTINGS MODAL (User Profile, Banner, Avatar, Bio, Username customization) -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-discord-medium w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
+            <div class="bg-discord-dark px-6 py-4 flex items-center justify-between border-b border-black/20">
+                <h3 class="text-white font-bold text-lg"><i class="fa-solid fa-gear mr-2 text-discord-accent"></i> User Settings</h3>
+                <button onclick="closeSettingsModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-6 space-y-6">
+                <!-- Banner & Avatar Preview Card -->
+                <div class="bg-discord-dark rounded-xl overflow-hidden shadow-md">
+                    <div id="modalBannerPreview" class="h-28 bg-gradient-to-r from-purple-600 to-indigo-600 bg-cover bg-center relative"></div>
+                    <div class="px-6 pb-6 pt-4 relative">
+                        <div class="absolute -top-12 left-6 w-20 h-20 rounded-full border-4 border-discord-dark overflow-hidden bg-discord-darkest shadow-xl">
+                            <img id="modalAvatarPreview" src="https://placehold.co/100x100/5865F2/ffffff?text=U" class="w-full h-full object-cover">
+                        </div>
+                        <div class="ml-24 flex items-center justify-between">
+                            <div>
+                                <h4 id="modalUsernamePreview" class="text-white font-bold text-xl">User</h4>
+                                <span class="text-xs text-discord-green font-medium"><i class="fa-solid fa-circle text-[8px] mr-1"></i> Online</span>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-discord-medium">
+                            <h5 class="text-xs font-bold uppercase text-gray-400 mb-1">About Me</h5>
+                            <p id="modalBioPreview" class="text-sm text-gray-200 italic">Building scalable AWS cloud architectures and chatting with friends on Nexus.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Controls -->
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-400 mb-2">Username</label>
+                        <input id="inputUsername" type="text" class="w-full bg-discord-darkest text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-discord-accent text-sm" value="User">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-400 mb-2">Avatar URL (Supports GIFs/Images)</label>
+                        <input id="inputAvatar" type="text" class="w-full bg-discord-darkest text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-discord-accent text-sm" placeholder="https://example.com/avatar.gif">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-400 mb-2">Animated Banner URL</label>
+                        <input id="inputBanner" type="text" class="w-full bg-discord-darkest text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-discord-accent text-sm" placeholder="https://example.com/banner.gif">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-400 mb-2">Editable Bio</label>
+                        <textarea id="inputBio" rows="3" class="w-full bg-discord-darkest text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-discord-accent text-sm" placeholder="Tell us about yourself..."></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-discord-dark px-6 py-4 flex items-center justify-end space-x-3 border-t border-black/20">
+                <button onclick="closeSettingsModal()" class="text-white hover:underline text-sm font-medium">Cancel</button>
+                <button onclick="saveUserSettings()" class="bg-discord-accent hover:bg-discord-accent/80 text-white px-5 py-2 rounded-lg font-bold text-sm shadow transition">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. ADD SERVER MODAL -->
+    <div id="addServerModal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-discord-medium w-full max-w-md rounded-2xl overflow-hidden shadow-2xl p-6 text-center animate-in fade-in zoom-in duration-200">
+            <h3 class="text-white font-bold text-2xl mb-2">Create Your Guild</h3>
+            <p class="text-gray-400 text-sm mb-6">Your server is where you and your friends hang out. Make yours and start talking.</p>
+            <div class="text-left mb-4">
+                <label class="block text-xs font-bold uppercase text-gray-400 mb-2">Server Name</label>
+                <input id="inputNewServerName" type="text" class="w-full bg-discord-darkest text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-discord-accent text-sm" placeholder="My Awesome Guild">
+            </div>
+            <div class="text-left mb-6">
+                <label class="block text-xs font-bold uppercase text-gray-400 mb-2">Server Icon URL</label>
+                <input id="inputNewServerIcon" type="text" class="w-full bg-discord-darkest text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-discord-accent text-sm" placeholder="https://example.com/icon.png">
+            </div>
+            <div class="flex items-center justify-between">
+                <button onclick="closeAddServerModal()" class="text-white hover:underline text-sm">Cancel</button>
+                <button onclick="createNewServer()" class="bg-discord-accent hover:bg-discord-accent/80 text-white px-5 py-2 rounded-lg font-bold text-sm transition">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Core Logic -->
+    <script>
+        // Application State
+        let currentUser = {
+            name: "CloudArchitect",
+            avatar: "https://placehold.co/100x100/5865F2/ffffff?text=CA",
+            banner: "",
+            bio: "Building scalable AWS cloud architectures & real-time apps."
+        };
+
+        let currentView = 'home'; // 'home', 'guild', 'dm'
+        let activeGuildId = null;
+        let activeChannelId = 'general';
+        let isMuted = false;
+        let isDeafened = false;
+        let isCamOn = true;
+        let isScreenSharing = false;
+        let activeDMUser = null;
+
+        // Profanity Bad Words Filter List
+        const profanityList = ["badword", "cuss", "spamword", "toxictest", "idiot", "stupid"];
+
+        // Guilds Data Store (Starts completely empty)
+        let guilds = [];
+
+        // Friends Data Store (Starts completely empty)
+        let friendsList = [];
+
+        // Messages Database per Channel / DM
+        let messagesStore = {};
+
+        // Initialize App on Window Load
+        window.onload = function() {
+            renderGuilds();
+            renderDMSidebar();
+            renderFriendsView();
+            updateUserUI();
+        };
+
+        // UI View Switcher
+        function switchView(viewType, guildId = null, channelId = null) {
+            currentView = viewType;
+            activeGuildId = guildId;
+            activeDMUser = null;
+            
+            // Highlight home indicator
+            const indicator = document.getElementById('homeIndicator');
+            if(viewType === 'home') {
+                indicator.style.height = '40px';
+                indicator.style.top = '12px';
+            } else {
+                indicator.style.height = '0px';
+            }
+
+            // Hide all sub-views inside main container
+            document.getElementById('chatView').classList.add('hidden');
+            document.getElementById('voiceView').classList.add('hidden');
+            document.getElementById('videoView').classList.add('hidden');
+            document.getElementById('friendsView').classList.add('hidden');
+
+            if (viewType === 'home') {
+                document.getElementById('sidebarTitle').innerText = 'Direct Messages';
+                document.getElementById('sidebarHeaderIcon').className = 'fa-solid fa-chevron-down text-xs';
+                document.getElementById('friendsView').classList.remove('hidden');
+                renderDMSidebar();
+                renderFriendsView();
+            } else if (viewType === 'guild') {
+                const guild = guilds.find(g => g.id === guildId);
+                if (guild) {
+                    document.getElementById('sidebarTitle').innerText = guild.name;
+                    document.getElementById('sidebarHeaderIcon').className = 'fa-solid fa-angle-down text-xs';
+                    
+                    if (channelId) {
+                        activeChannelId = channelId;
+                        const channel = guild.channels.find(c => c.id === channelId);
+                        if (channel) {
+                            if (channel.type === 'voice') {
+                                document.getElementById('voiceView').classList.remove('hidden');
+                                updateMainHeader(channel.name, channel.topic, 'fa-solid fa-volume-high');
+                            } else {
+                                document.getElementById('chatView').classList.remove('hidden');
+                                updateMainHeader(channel.name, channel.topic, 'fa-solid fa-hashtag');
+                                renderMessages();
+                            }
+                        }
+                    }
+                }
+                renderGuildSidebar(guild);
+            }
+            renderGuilds();
+        }
+
+        function updateMainHeader(title, topic, iconClass) {
+            document.getElementById('mainHeaderTitle').innerText = title;
+            document.getElementById('mainHeaderTopic').innerText = topic;
+            document.getElementById('mainHeaderIcon').className = `${iconClass} text-gray-400 text-lg mr-2`;
+        }
+
+        // Render Servers List on Leftmost Bar
+        function renderGuilds() {
+            const container = document.getElementById('guildsList');
+            container.innerHTML = '';
+            guilds.forEach(guild => {
+                const isActive = activeGuildId === guild.id;
+                const div = document.createElement('div');
+                div.className = 'relative group flex items-center justify-center w-full';
+                div.innerHTML = `
+                    <div class="absolute left-0 w-1 bg-white rounded-r transition-all duration-200 ${isActive ? 'h-10' : 'h-0 group-hover:h-5'}"></div>
+                    <button onclick="switchView('guild', '${guild.id}', '${guild.channels[0].id}')" class="w-12 h-12 rounded-[${isActive ? '16px' : '24px'}] hover:rounded-[16px] bg-discord-dark overflow-hidden transition-all duration-200 shadow-md">
+                        <img src="${guild.icon}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/100x100/5865F2/ffffff?text=G'">
+                    </button>
+                    <div class="absolute left-[80px] bg-gray-900 text-white text-sm px-3 py-1 rounded shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                        ${guild.name}
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // Render Secondary Sidebar for DMs (Home view)
+        function renderDMSidebar() {
+            const container = document.getElementById('sidebarContent');
+            let dmHTML = `
+                <button onclick="switchView('home')" class="w-full flex items-center space-x-3 px-3 py-2 rounded-lg ${currentView === 'home' && !activeDMUser ? 'bg-discord-light text-white font-medium' : 'text-gray-400 hover:bg-white/5 hover:text-white'} text-sm transition">
+                    <i class="fa-solid fa-user-group text-gray-400"></i>
+                    <span>Friends</span>
+                </button>
+                <div class="pt-4 pb-1 px-3 flex items-center justify-between text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    <span>Direct Messages</span>
+                    <i class="fa-solid fa-plus cursor-pointer hover:text-white" onclick="promptAddFriend()"></i>
+                </div>
+            `;
+
+            if(friendsList.length === 0) {
+                dmHTML += `<div class="px-3 py-2 text-xs text-gray-500 italic">No direct messages yet. Add a friend to start chatting!</div>`;
+            } else {
+                friendsList.forEach(friend => {
+                    const isDMActive = activeDMUser === friend.name;
+                    dmHTML += `
+                        <div onclick="openDirectMessage('${friend.name}', '${friend.avatar}')" class="flex items-center space-x-3 px-3 py-2 rounded-lg cursor-pointer transition ${isDMActive ? 'bg-white/10 text-white font-medium' : 'text-gray-300 hover:bg-white/5'}">
+                            <div class="relative w-8 h-8 rounded-full overflow-hidden shrink-0">
+                                <img src="${friend.avatar}" class="w-full h-full object-cover">
+                                <div class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-discord-green border border-discord-dark rounded-full"></div>
+                            </div>
+                            <span class="truncate text-sm">${friend.name}</span>
+                        </div>
+                    `;
+                });
+            }
+            container.innerHTML = dmHTML;
+        }
+
+        // Render Friends Home Dashboard View
+        function renderFriendsView() {
+            const container = document.getElementById('friendsView');
+            let friendCards = '';
+            
+            if(friendsList.length === 0) {
+                friendCards = `
+                    <div class="flex flex-col items-center justify-center h-64 text-center text-gray-400">
+                        <i class="fa-solid fa-user-plus text-5xl mb-3 text-gray-600"></i>
+                        <p class="text-sm">No friends added yet. Click "Add Friend" above to start connecting!</p>
+                    </div>
+                `;
+            } else {
+                friendsList.forEach(friend => {
+                    friendCards += `
+                        <div class="flex items-center justify-between p-3 hover:bg-white/5 rounded-lg transition group border-b border-discord-dark/50">
+                            <div class="flex items-center space-x-3">
+                                <div class="relative w-10 h-10 rounded-full overflow-hidden">
+                                    <img src="${friend.avatar}" class="w-full h-full object-cover">
+                                    <div class="absolute bottom-0 right-0 w-3 h-3 bg-discord-green border-2 border-discord-medium rounded-full"></div>
+                                </div>
+                                <div>
+                                    <h4 class="text-white font-bold text-sm">${friend.name}</h4>
+                                    <span class="text-xs text-gray-400">${friend.status}</span>
+                                </div>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button onclick="openDirectMessage('${friend.name}', '${friend.avatar}')" class="w-9 h-9 rounded-full bg-discord-dark hover:bg-discord-light text-white flex items-center justify-center transition" title="Message"><i class="fa-solid fa-message text-xs"></i></button>
+                                <button onclick="startVoiceCall()" class="w-9 h-9 rounded-full bg-discord-dark hover:bg-discord-light text-white flex items-center justify-center transition" title="Voice Call"><i class="fa-solid fa-phone text-xs"></i></button>
+                                <button onclick="startVideoCall()" class="w-9 h-9 rounded-full bg-discord-dark hover:bg-discord-light text-white flex items-center justify-center transition" title="Video Call"><i class="fa-solid fa-video text-xs"></i></button>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            container.innerHTML = `
+                <div class="p-6 overflow-y-auto flex-1">
+                    <div class="flex items-center space-x-6 border-b border-discord-dark pb-4 mb-6">
+                        <button class="font-bold text-white border-b-2 border-discord-accent pb-1">Online (${friendsList.length})</button>
+                        <button onclick="promptAddFriend()" class="bg-discord-accent hover:bg-discord-accent/80 text-white px-3 py-1 rounded text-xs font-bold transition ml-auto">Add Friend</button>
+                    </div>
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Online — ${friendsList.length}</h3>
+                    <div class="space-y-2">
+                        ${friendCards}
+                    </div>
+                </div>
+            `;
+        }
+
+        function promptAddFriend() {
+            const friendName = prompt("Enter your friend's username:");
+            if(!friendName) return;
+            const avatars = [
+                'https://placehold.co/100x100/3ba55d/ffffff?text=AI',
+                'https://placehold.co/100x100/f59e0b/ffffff?text=DV',
+                'https://placehold.co/100x100/ec4899/ffffff?text=X',
+                'https://placehold.co/100x100/06b6d4/ffffff?text=Z'
+            ];
+            const randomAvatar = avatars[Math.floor(Math.random() * avatars.length)];
+            friendsList.push({
+                name: friendName,
+                avatar: randomAvatar,
+                status: 'Coding & Exploring AWS'
+            });
+            renderDMSidebar();
+            renderFriendsView();
+        }
+
+        // Render Secondary Sidebar for Guild Channels
+        function renderGuildSidebar(guild) {
+            const container = document.getElementById('sidebarContent');
+            container.innerHTML = '';
+            
+            const textChannels = guild.channels.filter(c => c.type === 'text');
+            const voiceChannels = guild.channels.filter(c => c.type === 'voice');
+
+            let html = `<div class="mb-4">
+                <div class="px-2 pb-1 text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center justify-between">
+                    <span>Text Channels</span>
+                    <i class="fa-solid fa-plus cursor-pointer hover:text-white" onclick="openAddChannelModal('${guild.id}', 'text')"></i>
+                </div>`;
+            
+            textChannels.forEach(c => {
+                const isActive = activeChannelId === c.id;
+                html += `
+                    <div onclick="switchView('guild', '${guild.id}', '${c.id}')" class="flex items-center space-x-2 px-2 py-1.5 rounded-lg cursor-pointer transition ${isActive ? 'bg-white/10 text-white font-medium' : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'}">
+                        <i class="fa-solid fa-hashtag text-sm"></i>
+                        <span class="text-sm truncate">${c.name}</span>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+
+            html += `<div>
+                <div class="px-2 pb-1 text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center justify-between">
+                    <span>Voice Channels</span>
+                    <i class="fa-solid fa-plus cursor-pointer hover:text-white" onclick="openAddChannelModal('${guild.id}', 'voice')"></i>
+                </div>`;
+            
+            voiceChannels.forEach(c => {
+                const isActive = activeChannelId === c.id;
+                html += `
+                    <div onclick="switchView('guild', '${guild.id}', '${c.id}')" class="flex items-center space-x-2 px-2 py-1.5 rounded-lg cursor-pointer transition ${isActive ? 'bg-white/10 text-white font-medium' : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'}">
+                        <i class="fa-solid fa-volume-high text-sm"></i>
+                        <span class="text-sm truncate">${c.name}</span>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+
+            container.innerHTML = html;
+        }
+
+        // Open Direct Message Chat
+        function openDirectMessage(name, avatar) {
+            activeDMUser = name;
+            document.getElementById('friendsView').classList.add('hidden');
+            document.getElementById('chatView').classList.remove('hidden');
+            updateMainHeader(name, 'Direct Message with ' + name, 'fa-solid fa-at');
+            activeChannelId = 'dm_' + name;
+            if(!messagesStore[activeChannelId]) {
+                messagesStore[activeChannelId] = [
+                    { user: name, avatar: avatar, text: `Hello ${currentUser.name}! Secure end-to-end DM channel established.`, time: 'Just now' }
+                ];
+            }
+            renderMessages();
+            renderDMSidebar();
+        }
+
+        // Render Messages in Chat View
+        function renderMessages() {
+            const container = document.getElementById('messageContainer');
+            const msgs = messagesStore[activeChannelId] || [];
+            container.innerHTML = '';
+            
+            msgs.forEach(msg => {
+                const div = document.createElement('div');
+                div.className = 'flex items-start space-x-4 hover:bg-black/10 p-2 rounded transition';
+                div.innerHTML = `
+                    <img src="${msg.avatar}" class="w-10 h-10 rounded-full object-cover shrink-0 mt-0.5" onerror="this.src='https://placehold.co/100x100/5865F2/ffffff?text=U'">
+                    <div class="flex-1 overflow-hidden">
+                        <div class="flex items-center space-x-2">
+                            <span class="font-bold text-white text-sm">${msg.user}</span>
+                            <span class="text-[10px] text-gray-400">${msg.time}</span>
+                        </div>
+                        <p class="text-gray-200 text-sm mt-0.5 break-words">${msg.text}</p>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Send Message with Anti-Cuss Filter
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            let text = input.value.trim();
+            if(!text) return;
+
+            // Anti-cuss filter check
+            let isCensored = false;
+            profanityList.forEach(word => {
+                const regex = new RegExp(word, 'gi');
+                if(regex.test(text)) {
+                    text = text.replace(regex, '[*CENSORED*]');
+                    isCensored = true;
+                }
+            });
+
+            if(isCensored) {
+                document.getElementById('profanityWarning').classList.remove('hidden');
+            }
+
+            if(!messagesStore[activeChannelId]) {
+                messagesStore[activeChannelId] = [];
+            }
+
+            messagesStore[activeChannelId].push({
+                user: currentUser.name,
+                avatar: currentUser.avatar || 'https://placehold.co/100x100/5865F2/ffffff?text=U',
+                text: text,
+                time: 'Just now'
+            });
+
+            input.value = '';
+            renderMessages();
+        }
+
+        function handleChatKey(e) {
+            if(e.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function dismissWarning() {
+            document.getElementById('profanityWarning').classList.add('hidden');
+        }
+
+        // Voice and Video Call Simulations
+        function startVoiceCall() {
+            document.getElementById('chatView').classList.add('hidden');
+            document.getElementById('friendsView').classList.add('hidden');
+            document.getElementById('videoView').classList.add('hidden');
+            document.getElementById('voiceView').classList.remove('hidden');
+            document.getElementById('voiceUserName1').innerText = currentUser.name;
+            document.getElementById('voiceUserAvatar1').src = currentUser.avatar;
+        }
+
+        function endVoiceCall() {
+            document.getElementById('voiceView').classList.add('hidden');
+            document.getElementById('chatView').classList.remove('hidden');
+        }
+
+        function startVideoCall() {
+            document.getElementById('chatView').classList.add('hidden');
+            document.getElementById('friendsView').classList.add('hidden');
+            document.getElementById('voiceView').classList.add('hidden');
+            document.getElementById('videoView').classList.remove('hidden');
+            document.getElementById('videoUserAvatar').src = currentUser.avatar;
+        }
+
+        function endVideoCall() {
+            document.getElementById('videoView').classList.add('hidden');
+            document.getElementById('chatView').classList.remove('hidden');
+        }
+
+        function toggleVideoCamera() {
+            isCamOn = !isCamOn;
+            const btn = document.getElementById('camIcon');
+            btn.className = isCamOn ? 'fa-solid fa-video' : 'fa-solid fa-video-slash';
+        }
+
+        // Chrome Browser Screensharing Integration
+        async function toggleScreenShare() {
+            const videoElem = document.getElementById('screenShareVideo');
+            const streamContainer = document.getElementById('screenShareContainer');
+            
+            if (!isScreenSharing) {
+                try {
+                    const gStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+                    videoElem.srcObject = gStream;
+                    streamContainer.classList.remove('hidden');
+                    isScreenSharing = true;
+                    
+                    // Handle user stopping stream from browser chrome UI
+                    gStream.getVideoTracks()[0].onended = () => {
+                        toggleScreenShare();
+                    };
+                } catch(err) {
+                    console.log("Screen share permission denied or cancelled.", err);
+                }
+            } else {
+                const stream = videoElem.srcObject;
+                if(stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+                videoElem.srcObject = null;
+                streamContainer.classList.add('hidden');
+                isScreenSharing = false;
+            }
+        }
+
+        // Fixed Muting / Unmuting and Deafening Toggles
+        function toggleMute() {
+            isMuted = !isMuted;
+            updateAudioIcons();
+        }
+
+        function toggleDeafen() {
+            isDeafened = !isDeafened;
+            if(isDeafened) {
+                isMuted = true; // Deafening automatically mutes you
+            }
+            updateAudioIcons();
+        }
+
+        function updateAudioIcons() {
+            const icons = ['muteIcon', 'voiceMuteIcon', 'videoMuteIcon'];
+            icons.forEach(id => {
+                const el = document.getElementById(id);
+                if(el) {
+                    el.className = isMuted ? 'fa-solid fa-microphone-slash text-red-500' : 'fa-solid fa-microphone text-white';
+                }
+            });
+
+            const deafIcons = ['deafenIcon', 'voiceDeafenIcon'];
+            deafIcons.forEach(id => {
+                const el = document.getElementById(id);
+                if(el) {
+                    el.className = isDeafened ? 'fa-solid fa-volume-xmark text-red-500' : 'fa-solid fa-headphones text-white';
+                }
+            });
+        }
+
+        // Settings Modal Management
+        function openSettingsModal() {
+            document.getElementById('inputUsername').value = currentUser.name;
+            document.getElementById('inputAvatar').value = currentUser.avatar;
+            document.getElementById('inputBanner').value = currentUser.banner;
+            document.getElementById('inputBio').value = currentUser.bio;
+            
+            updateSettingsPreview();
+            document.getElementById('settingsModal').classList.remove('hidden');
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').classList.add('hidden');
+        }
+
+        function updateSettingsPreview() {
+            const name = document.getElementById('inputUsername').value || 'User';
+            const avatar = document.getElementById('inputAvatar').value || 'https://placehold.co/100x100/5865F2/ffffff?text=U';
+            const banner = document.getElementById('inputBanner').value;
+            const bio = document.getElementById('inputBio').value;
+
+            document.getElementById('modalUsernamePreview').innerText = name;
+            document.getElementById('modalAvatarPreview').src = avatar;
+            document.getElementById('modalBioPreview').innerText = bio;
+            
+            const bannerEl = document.getElementById('modalBannerPreview');
+            if(banner) {
+                bannerEl.style.backgroundImage = `url('${banner}')`;
+            } else {
+                bannerEl.style.backgroundImage = 'none';
+            }
+        }
+
+        document.getElementById('inputUsername').addEventListener('input', updateSettingsPreview);
+        document.getElementById('inputAvatar').addEventListener('input', updateSettingsPreview);
+        document.getElementById('inputBanner').addEventListener('input', updateSettingsPreview);
+        document.getElementById('inputBio').addEventListener('input', updateSettingsPreview);
+
+        function saveUserSettings() {
+            currentUser.name = document.getElementById('inputUsername').value || 'User';
+            currentUser.avatar = document.getElementById('inputAvatar').value || 'https://placehold.co/100x100/5865F2/ffffff?text=U';
+            currentUser.banner = document.getElementById('inputBanner').value;
+            currentUser.bio = document.getElementById('inputBio').value;
+
+            updateUserUI();
+            closeSettingsModal();
+        }
+
+        function updateUserUI() {
+            document.getElementById('sidebarUserAvatar').src = currentUser.avatar;
+            document.getElementById('footerUserAvatar').src = currentUser.avatar;
+            document.getElementById('footerUsername').innerText = currentUser.name;
+            document.getElementById('memberListSelfAvatar').src = currentUser.avatar;
+            document.getElementById('memberListSelfName').innerText = currentUser.name;
+        }
+
+        // Add Server Modal
+        function openAddServerModal() {
+            document.getElementById('addServerModal').classList.remove('hidden');
+        }
+
+        function closeAddServerModal() {
+            document.getElementById('addServerModal').classList.add('hidden');
+        }
+
+        function createNewServer() {
+            const name = document.getElementById('inputNewServerName').value.trim() || 'New Guild';
+            const icon = document.getElementById('inputNewServerIcon').value.trim() || 'https://placehold.co/100x100/8b5cf6/ffffff?text=NG';
+            const id = 'guild_' + Date.now();
+
+            guilds.push({
+                id: id,
+                name: name,
+                icon: icon,
+                channels: [
+                    { id: 'general_' + id, name: 'general', type: 'text', topic: 'Welcome to ' + name },
+                    { id: 'voice_' + id, name: 'Lounge Voice', type: 'voice', topic: 'Voice room for members' }
+                ]
+            });
+
+            closeAddServerModal();
+            renderGuilds();
+            switchView('guild', id, 'general_' + id);
+        }
+
+        function openAddChannelModal(guildId, type) {
+            const channelName = prompt(`Enter new ${type} channel name:`);
+            if(!channelName) return;
+            const guild = guilds.find(g => g.id === guildId);
+            if(guild) {
+                const cId = 'chan_' + Date.now();
+                guild.channels.push({
+                    id: cId,
+                    name: channelName.toLowerCase().replace(/\s+/g, '-'),
+                    type: type,
+                    topic: 'Channel created by ' + currentUser.name
+                });
+                switchView('guild', guildId, cId);
+            }
+        }
+
+        function openMemberList() {
+            const sidebar = document.getElementById('memberSidebar');
+            sidebar.classList.toggle('hidden');
+        }
+    </script>
+</body>
+</html>
